@@ -7,11 +7,13 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-model = joblib.load(os.path.join(os.path.dirname(__file__), "../model/fraud_model.pkl"))
+base = os.path.dirname(__file__)
+model = joblib.load(os.path.join(base, "../model/fraud_model.pkl"))
+threshold = joblib.load(os.path.join(base, "../model/threshold.pkl"))
 
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({"status": "Fraud Detection API is running"})
+    return jsonify({"status": "Fraud Detection API is running", "threshold": threshold})
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -23,8 +25,8 @@ def predict():
             return jsonify({"error": "Provide exactly 30 features"}), 400
 
         input_array = np.array(features).reshape(1, -1)
-        prediction = model.predict(input_array)[0]
         probability = model.predict_proba(input_array)[0][1]
+        prediction = int(probability >= threshold)
 
         if probability < 0.30:
             triage = "LOW"
@@ -34,7 +36,7 @@ def predict():
             triage = "HIGH"
 
         return jsonify({
-            "prediction": int(prediction),
+            "prediction": prediction,
             "label": "FRAUD" if prediction == 1 else "LEGIT",
             "fraud_probability": round(float(probability), 4),
             "triage": triage
