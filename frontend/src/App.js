@@ -19,7 +19,7 @@ export default function App() {
     }
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/predict", { features });
+      const res = await axios.post("https://fraud-detection-api-5nmq.onrender.com/predict", { features });
       const newResult = res.data;
       setResult(newResult);
       setHistory((prev) => [{ ...newResult, id: Date.now() }, ...prev.slice(0, 9)]);
