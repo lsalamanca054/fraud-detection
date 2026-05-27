@@ -128,13 +128,13 @@ export default function App() {
       <div style={{ position:"relative", zIndex:1, padding:"24px 16px", maxWidth:1000, margin:"0 auto" }}>
 
         {/* Stat Cards */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12, marginBottom:24 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))", gap:12, marginBottom:24 }}>
           {statCards.map((s,i) => (
             <motion.div key={i} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.08 }}
-              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:"16px", backdropFilter:"blur(10px)", display:"flex", alignItems:"center", gap:12 }}>
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:"12px 8px", backdropFilter:"blur(10px)", display:"flex", alignItems:"center", gap:8 }}>
               <div style={{ background:`${s.color}18`, border:`1px solid ${s.color}33`, borderRadius:10, padding:8, color:s.color, flexShrink:0 }}>{s.icon}</div>
               <div>
-                <div style={{ fontSize:22, fontWeight:700, fontFamily:"'Space Mono', monospace" }}>{s.value}</div>
+                <div style={{ fontSize:18, fontWeight:700, fontFamily:"'Space Mono', monospace" }}>{s.value}</div>
                 <div style={{ fontSize:11, color:t.sub, letterSpacing:"0.06em" }}>{s.label.toUpperCase()}</div>
               </div>
             </motion.div>
@@ -190,46 +190,62 @@ export default function App() {
               </button>
             </motion.div>
 
-            {/* Result */}
-            <motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }}
-              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320 }}>
-              <AnimatePresence mode="wait">
-                {!result && !loading && (
-                  <motion.div key="empty" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center", color:t.sub }}>
-                    <div style={{ width:64, height:64, borderRadius:"50%", background: t.card2, border:`1px solid ${t.border}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                      <ShieldCheck size={28} style={{ opacity:0.3 }}/>
-                    </div>
-                    <p style={{ fontSize:12, letterSpacing:"0.06em" }}>AWAITING TRANSACTION</p>
-                  </motion.div>
-                )}
-                {loading && (
-                  <motion.div key="loading" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center" }}>
-                    <div style={{ width:64, height:64, borderRadius:"50%", border:"2px solid #4f8ef7", borderTopColor:"transparent", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }}/>
-                    <p style={{ color:t.sub, fontSize:12, letterSpacing:"0.06em" }}>SCANNING TRANSACTION...</p>
-                  </motion.div>
-                )}
-                {result && !loading && (
-                  <motion.div key="result" initial={{scale:0.9,opacity:0}} animate={{scale:1,opacity:1}} style={{ width:"100%", textAlign:"center" }}>
-                    <GaugeMeter value={result.fraud_probability}/>
-                    <motion.div initial={{y:10,opacity:0}} animate={{y:0,opacity:1}} transition={{delay:0.2}}>
-                      <div style={{ fontSize:28, fontWeight:800, letterSpacing:"0.1em", color: result.label==="FRAUD"?"#ff3d71":"#00d68f", margin:"8px 0 4px" }}>
-                        {result.label==="FRAUD" ? "🚨" : "✅"} {result.label}
-                      </div>
-                      <div style={{ fontSize:11, color:t.sub, letterSpacing:"0.06em", marginBottom:12 }}>
-                        CONFIDENCE: <span style={{ color:t.text, fontFamily:"'Space Mono', monospace" }}>{((1-result.fraud_probability)*100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ background: result.label==="FRAUD" ? "rgba(255,61,113,0.08)" : "rgba(0,214,143,0.08)",
-                        border:`1px solid ${result.label==="FRAUD"?"rgba(255,61,113,0.25)":"rgba(0,214,143,0.25)"}`,
-                        borderRadius:10, padding:"10px 16px", fontSize:11, color: result.label==="FRAUD"?"#ff3d71":"#00d68f", letterSpacing:"0.04em" }}>
-                        {result.label==="FRAUD" ? "⚠ Transaction flagged. Recommend immediate review." : "✔ Transaction cleared. Safe to process."}
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+          {/* Result */}
+<motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }}
+  style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320 }}>
+  <AnimatePresence mode="wait">
+    {!result && !loading && (
+      <motion.div key="empty" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center", color:t.sub }}>
+        <div style={{ width:64, height:64, borderRadius:"50%", background: t.card2, border:`1px solid ${t.border}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+          <ShieldCheck size={28} style={{ opacity:0.3 }}/>
+        </div>
+        <p style={{ fontSize:12, letterSpacing:"0.06em" }}>AWAITING TRANSACTION</p>
+      </motion.div>
+    )}
+    {loading && (
+      <motion.div key="loading" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center" }}>
+        <div style={{ width:64, height:64, borderRadius:"50%", border:"2px solid #4f8ef7", borderTopColor:"transparent", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }}/>
+        <p style={{ color:t.sub, fontSize:12, letterSpacing:"0.06em" }}>SCANNING TRANSACTION...</p>
+      </motion.div>
+    )}
+    {result && !loading && (
+      <motion.div key="result" initial={{scale:0.9,opacity:0}} animate={{scale:1,opacity:1}} style={{ width:"100%", textAlign:"center" }}>
+        <GaugeMeter value={result.fraud_probability}/>
+        <motion.div initial={{y:10,opacity:0}} animate={{y:0,opacity:1}} transition={{delay:0.2}}>
+          <div style={{ fontSize:28, fontWeight:800, letterSpacing:"0.1em", color: result.label==="FRAUD"?"#ff3d71":"#00d68f", margin:"8px 0 4px" }}>
+            {result.label==="FRAUD" ? "🚨" : "✅"} {result.label}
           </div>
-        )}
+          <div style={{ fontSize:11, color:t.sub, letterSpacing:"0.06em", marginBottom:10 }}>
+            CONFIDENCE: <span style={{ color:t.text, fontFamily:"'Space Mono', monospace" }}>{((1-result.fraud_probability)*100).toFixed(1)}%</span>
+          </div>
+
+          {/* Triage Badge */}
+          <div style={{ marginBottom:12 }}>
+            <span style={{
+              display:"inline-block", padding:"4px 14px", borderRadius:20,
+              fontSize:11, fontWeight:700, letterSpacing:"0.08em",
+              background: result.triage==="HIGH" ? "rgba(255,61,113,0.15)" : result.triage==="MEDIUM" ? "rgba(255,170,0,0.15)" : "rgba(0,214,143,0.15)",
+              color: result.triage==="HIGH" ? "#ff3d71" : result.triage==="MEDIUM" ? "#ffaa00" : "#00d68f",
+              border: `1px solid ${result.triage==="HIGH" ? "rgba(255,61,113,0.3)" : result.triage==="MEDIUM" ? "rgba(255,170,0,0.3)" : "rgba(0,214,143,0.3)"}`
+            }}>
+              TRIAGE: {result.triage}
+            </span>
+          </div>
+
+          <div style={{ background: result.label==="FRAUD" ? "rgba(255,61,113,0.08)" : "rgba(0,214,143,0.08)",
+            border:`1px solid ${result.label==="FRAUD"?"rgba(255,61,113,0.25)":"rgba(0,214,143,0.25)"}`,
+            borderRadius:10, padding:"10px 16px", fontSize:11, color: result.label==="FRAUD"?"#ff3d71":"#00d68f", letterSpacing:"0.04em" }}>
+            {result.triage==="HIGH" ? "⚠ High risk. Block transaction and alert analyst immediately." :
+             result.triage==="MEDIUM" ? "⚡ Medium risk. Flag for secondary verification (OTP required)." :
+             "✔ Low risk. Transaction cleared. Safe to process."}
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</motion.div>
+</div>
+)}
 
         {/* History Tab */}
         {activeTab==="history" && (
