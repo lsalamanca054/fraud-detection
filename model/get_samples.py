@@ -1,15 +1,10 @@
 import pandas as pd
 
-df = pd.read_csv('creditcard.csv')
-fraud = df[df['Class']==1].head(3)
-legit = df[df['Class']==0].head(3)
+df = pd.read_csv("creditcard.csv")
+fraud = df[df['Class']==1].head(5)
 
-print('--- FRAUD SAMPLES ---')
-for _, row in fraud.iterrows():
-    print(','.join(map(str, row.drop('Class').tolist())))
-    print()
-
-print('--- LEGIT SAMPLES ---')
-for _, row in legit.iterrows():
-    print(','.join(map(str, row.drop('Class').tolist())))
-    print()
+print('--- CONFIRMED FRAUD SAMPLES ---')
+for i, (_, row) in enumerate(fraud.iterrows()):
+    features = row.drop('Class').tolist()
+    print(f"\nSample {i+1}:")
+    print(','.join(map(str, features)))
