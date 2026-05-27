@@ -1,13 +1,12 @@
 import { useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, Activity, BarChart2, Zap, Moon, Sun, RefreshCw } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Activity, BarChart2, Zap, Moon, Sun, RefreshCw, Clock, TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const API = "https://fraud-detection-api-5nmq.onrender.com/predict";
 
 const SAMPLE_LEGIT = [0,-1.3598071336738,-0.0727811733098497,2.53634673796914,1.37815522427443,-0.338320769942518,0.462387777762292,0.239598554061257,0.0986979012610507,0.363786969611213,-0.0827840783408287,-0.270710202219468,-0.838587050085416,-0.414575448522756,-0.503140859566824,-1.18026065070827,-0.0283809549048508,-0.0204783736659523,-0.165946098417795,1.77320987891443,0.379779592574863,-1.18755801255055,0.0133756894738265,-0.0210530534538215,0.247998153469754,0.771679401917229,0.909412262347719,-0.689280956490685,-0.327641833735251,0.0];
-
 const SAMPLE_FRAUD = [-1.3598071336738,1.1918658643,-0.9350866,-0.2374,-1.437954,-2.984617,-3.163276,-2.892415,-0.104,-0.451,-0.219,-0.234,-0.165,-0.382,-0.503,-1.18,-0.028,-0.020,0.085,0.379,-1.187,0.013,-0.021,0.247,0.771,-0.689,-0.327,0.0,-1.2,400.0];
 
 export default function App() {
@@ -20,199 +19,209 @@ export default function App() {
   const [stats, setStats] = useState({ total: 0, fraud: 0, legit: 0 });
   const [activeTab, setActiveTab] = useState("analyze");
 
-  const bg = dark ? "#0a0f1e" : "#f0f4ff";
-  const card = dark ? "#0f172a" : "#ffffff";
-  const card2 = dark ? "#1e293b" : "#f8faff";
-  const text = dark ? "#f1f5f9" : "#0f172a";
-  const sub = dark ? "#94a3b8" : "#64748b";
-  const border = dark ? "#1e293b" : "#e2e8f0";
+  const t = dark ? {
+    bg: "#060910", card: "rgba(255,255,255,0.04)", card2: "rgba(255,255,255,0.07)",
+    border: "rgba(255,255,255,0.08)", text: "#f0f4ff", sub: "#6b7fa3",
+    header: "rgba(6,9,16,0.85)"
+  } : {
+    bg: "#f0f4ff", card: "rgba(255,255,255,0.9)", card2: "rgba(255,255,255,0.6)",
+    border: "rgba(0,0,30,0.08)", text: "#060910", sub: "#5a6a8a",
+    header: "rgba(240,244,255,0.85)"
+  };
 
   const handlePredict = async (featuresArray) => {
-    setError("");
-    setResult(null);
+    setError(""); setResult(null);
     const features = featuresArray || input.split(",").map(Number);
     if (features.length !== 30 || features.some(isNaN)) {
-      setError("Please enter exactly 30 valid comma-separated numbers.");
-      return;
+      setError("Enter exactly 30 comma-separated numbers."); return;
     }
     setLoading(true);
     try {
       const res = await axios.post(API, { features });
-      const newResult = { ...res.data, id: Date.now(), time: new Date().toLocaleTimeString() };
-      setResult(newResult);
-      setHistory((prev) => [newResult, ...prev.slice(0, 19)]);
-      setStats((prev) => ({
-        total: prev.total + 1,
-        fraud: prev.fraud + (newResult.label === "FRAUD" ? 1 : 0),
-        legit: prev.legit + (newResult.label === "LEGIT" ? 1 : 0),
-      }));
-    } catch {
-      setError("API error. Please try again.");
-    }
+      const r = { ...res.data, id: Date.now(), time: new Date().toLocaleTimeString() };
+      setResult(r);
+      setHistory(p => [r, ...p.slice(0, 19)]);
+      setStats(p => ({ total: p.total+1, fraud: p.fraud+(r.label==="FRAUD"?1:0), legit: p.legit+(r.label==="LEGIT"?1:0) }));
+    } catch { setError("API error. Try again."); }
     setLoading(false);
   };
 
-  const areaData = history.slice().reverse().map((h, i) => ({
-    name: i + 1,
-    probability: +(h.fraud_probability * 100).toFixed(2),
-  }));
-
-  const pieData = [
-    { name: "Legit", value: stats.legit || 1 },
-    { name: "Fraud", value: stats.fraud || 0 },
-  ];
-
   const GaugeMeter = ({ value }) => {
     const pct = value * 100;
-    const color = pct < 30 ? "#22c55e" : pct < 70 ? "#f59e0b" : "#ef4444";
-    const rotation = -90 + pct * 1.8;
+    const color = pct < 25 ? "#00d68f" : pct < 60 ? "#ffaa00" : "#ff3d71";
+    const r = 70, cx = 100, cy = 100;
+    const toXY = (deg) => {
+      const rad = (deg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    };
+    const start = toXY(-135), end = toXY(-135 + (pct/100)*270);
+    const large = (pct/100)*270 > 180 ? 1 : 0;
     return (
-      <div style={{ textAlign: "center", padding: "20px 0" }}>
-        <svg viewBox="0 0 200 110" width="220">
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke={border} strokeWidth="16" strokeLinecap="round" />
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke={color} strokeWidth="16" strokeLinecap="round"
-            strokeDasharray={`${pct * 2.51} 251`} />
-          <g transform={`rotate(${rotation}, 100, 100)`}>
-            <line x1="100" y1="100" x2="100" y2="30" stroke={text} strokeWidth="3" strokeLinecap="round" />
-            <circle cx="100" cy="100" r="6" fill={color} />
-          </g>
-          <text x="100" y="88" textAnchor="middle" fill={color} fontSize="22" fontWeight="bold">{pct.toFixed(1)}%</text>
-          <text x="100" y="105" textAnchor="middle" fill={sub} fontSize="11">Fraud Risk</text>
+      <div style={{ textAlign: "center" }}>
+        <svg viewBox="0 0 200 160" width="100%" style={{ maxWidth: 260 }}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={t.border} strokeWidth="12" strokeDasharray="339 1000" strokeDashoffset="-85" strokeLinecap="round" />
+          {pct > 0 && (
+            <path d={`M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 1 ${end.x} ${end.y}`}
+              fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
+          )}
+          <text x={cx} y={cy-8} textAnchor="middle" fill={color} fontSize="26" fontWeight="700" fontFamily="'Space Mono', monospace">{pct.toFixed(1)}%</text>
+          <text x={cx} y={cy+12} textAnchor="middle" fill={t.sub} fontSize="11" fontFamily="'Syne', sans-serif">FRAUD RISK SCORE</text>
+          <text x={cx} y={cy+130} textAnchor="middle" fill={t.sub} fontSize="10" fontFamily="'Syne', sans-serif">LOW</text>
+          <text x={cx} y={cy+130} dx="60" textAnchor="middle" fill={t.sub} fontSize="10" fontFamily="'Syne', sans-serif">HIGH</text>
         </svg>
       </div>
     );
   };
 
+  const areaData = history.slice().reverse().map((h, i) => ({ n: i+1, p: +(h.fraud_probability*100).toFixed(2) }));
+  const pieData = [{ name: "Legit", value: stats.legit||1 }, { name: "Fraud", value: stats.fraud||0 }];
+
+  const statCards = [
+    { label: "Analyzed", value: stats.total, icon: <Activity size={16}/>, color: "#4f8ef7" },
+    { label: "Flagged", value: stats.fraud, icon: <ShieldAlert size={16}/>, color: "#ff3d71" },
+    { label: "Cleared", value: stats.legit, icon: <ShieldCheck size={16}/>, color: "#00d68f" },
+  ];
+
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: text, fontFamily: "'Inter', sans-serif", transition: "all 0.3s" }}>
+    <div style={{ minHeight: "100vh", background: t.bg, color: t.text, fontFamily: "'Syne', sans-serif", transition: "background 0.3s, color 0.3s", overflowX: "hidden" }}>
+
+      {/* Animated background grid */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+        <svg width="100%" height="100%" style={{ opacity: dark ? 0.04 : 0.06 }}>
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke={dark?"#4f8ef7":"#060910"} strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)"/>
+        </svg>
+        {dark && (
+          <>
+            <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle, rgba(79,142,247,0.12) 0%, transparent 70%)", top:-100, right:-100 }}/>
+            <div style={{ position:"absolute", width:300, height:300, borderRadius:"50%", background:"radial-gradient(circle, rgba(255,61,113,0.08) 0%, transparent 70%)", bottom:100, left:-50 }}/>
+          </>
+        )}
+      </div>
 
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${border}`, padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", background: card }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", borderRadius: 10, padding: 8 }}>
-            <ShieldCheck size={22} color="white" />
+      <div style={{ position:"sticky", top:0, zIndex:100, backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", background: t.header, borderBottom:`1px solid ${t.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg, #4f8ef7, #7b5cf0)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <ShieldCheck size={18} color="white"/>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 18 }}>FraudShield</div>
-            <div style={{ fontSize: 11, color: sub }}>Real-Time Detection System</div>
+            <div style={{ fontWeight:700, fontSize:16, letterSpacing:"0.05em" }}>FRAUDSHIELD</div>
+            <div style={{ fontSize:10, color:t.sub, letterSpacing:"0.1em" }}>SMOTE · XGBOOST · REAL-TIME</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#22c55e22", padding: "6px 12px", borderRadius: 20 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", animation: "pulse 2s infinite" }} />
-            <span style={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>API Live</span>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(0,214,143,0.1)", border:"1px solid rgba(0,214,143,0.2)", padding:"5px 10px", borderRadius:20 }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:"#00d68f", animation:"blink 2s ease-in-out infinite" }}/>
+            <span style={{ fontSize:11, color:"#00d68f", fontWeight:600, letterSpacing:"0.08em" }}>LIVE</span>
           </div>
-          <button onClick={() => setDark(!dark)} style={{ background: card2, border: `1px solid ${border}`, borderRadius: 8, padding: "8px 12px", cursor: "pointer", color: text }}>
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
+          <button onClick={() => setDark(!dark)} style={{ background: t.card2, border:`1px solid ${t.border}`, borderRadius:8, padding:"7px 10px", cursor:"pointer", color:t.text, display:"flex", alignItems:"center" }}>
+            {dark ? <Sun size={15}/> : <Moon size={15}/>}
           </button>
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, padding: "24px 32px 0" }}>
-        {[
-          { label: "Total Analyzed", value: stats.total, icon: <Activity size={18} />, color: "#3b82f6" },
-          { label: "Fraud Detected", value: stats.fraud, icon: <ShieldAlert size={18} />, color: "#ef4444" },
-          { label: "Legit Transactions", value: stats.legit, icon: <ShieldCheck size={18} />, color: "#22c55e" },
-        ].map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
-            style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ background: s.color + "22", borderRadius: 10, padding: 10, color: s.color }}>{s.icon}</div>
-            <div>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{s.value}</div>
-              <div style={{ fontSize: 12, color: sub }}>{s.label}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      <div style={{ position:"relative", zIndex:1, padding:"24px 16px", maxWidth:1000, margin:"0 auto" }}>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, padding: "24px 32px 0" }}>
-        {["analyze", "history", "charts"].map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            style={{ padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13, textTransform: "capitalize",
-              background: activeTab === tab ? "linear-gradient(135deg, #3b82f6, #8b5cf6)" : card2,
-              color: activeTab === tab ? "white" : sub }}>
-            {tab}
-          </button>
-        ))}
-      </div>
+        {/* Stat Cards */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12, marginBottom:24 }}>
+          {statCards.map((s,i) => (
+            <motion.div key={i} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.08 }}
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:"16px", backdropFilter:"blur(10px)", display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ background:`${s.color}18`, border:`1px solid ${s.color}33`, borderRadius:10, padding:8, color:s.color, flexShrink:0 }}>{s.icon}</div>
+              <div>
+                <div style={{ fontSize:22, fontWeight:700, fontFamily:"'Space Mono', monospace" }}>{s.value}</div>
+                <div style={{ fontSize:11, color:t.sub, letterSpacing:"0.06em" }}>{s.label.toUpperCase()}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
 
-      <div style={{ padding: "24px 32px", maxWidth: 1100, margin: "0 auto" }}>
+        {/* Tabs */}
+        <div style={{ display:"flex", gap:6, marginBottom:20, background: t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:4, backdropFilter:"blur(10px)" }}>
+          {[{id:"analyze",icon:<Zap size={14}/>},{id:"history",icon:<Clock size={14}/>},{id:"charts",icon:<TrendingUp size={14}/>}].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              style={{ flex:1, padding:"9px 12px", borderRadius:9, border:"none", cursor:"pointer", fontWeight:600, fontSize:12,
+                letterSpacing:"0.06em", textTransform:"uppercase", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                background: activeTab===tab.id ? "linear-gradient(135deg, #4f8ef7, #7b5cf0)" : "transparent",
+                color: activeTab===tab.id ? "white" : t.sub }}>
+              {tab.icon}{tab.id}
+            </button>
+          ))}
+        </div>
 
         {/* Analyze Tab */}
-        {activeTab === "analyze" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        {activeTab==="analyze" && (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:16 }}>
 
-            {/* Input Panel */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-              style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 24 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-                <Zap size={18} color="#3b82f6" /> Transaction Input
-              </div>
+            {/* Input */}
+            <motion.div initial={{ opacity:0, x:-20 }} animate={{ opacity:1, x:0 }}
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)" }}>
+              <div style={{ fontWeight:700, fontSize:13, letterSpacing:"0.08em", color:t.sub, marginBottom:16 }}>TRANSACTION INPUT</div>
 
-              {/* Quick Load Buttons */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-                <button onClick={() => { setInput(SAMPLE_LEGIT.join(",")); }}
-                  style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid #22c55e`, background: "#22c55e11", color: "#22c55e", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                  Load Legit Sample
+              <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+                <button onClick={() => setInput(SAMPLE_LEGIT.join(","))}
+                  style={{ flex:1, padding:"8px 6px", borderRadius:8, border:"1px solid rgba(0,214,143,0.3)", background:"rgba(0,214,143,0.07)", color:"#00d68f", cursor:"pointer", fontSize:11, fontWeight:700, letterSpacing:"0.05em" }}>
+                  ✓ LEGIT SAMPLE
                 </button>
-                <button onClick={() => { setInput(SAMPLE_FRAUD.join(",")); }}
-                  style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid #ef4444`, background: "#ef444411", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                  Load Fraud Sample
+                <button onClick={() => setInput(SAMPLE_FRAUD.join(","))}
+                  style={{ flex:1, padding:"8px 6px", borderRadius:8, border:"1px solid rgba(255,61,113,0.3)", background:"rgba(255,61,113,0.07)", color:"#ff3d71", cursor:"pointer", fontSize:11, fontWeight:700, letterSpacing:"0.05em" }}>
+                  ⚠ FRAUD SAMPLE
                 </button>
               </div>
 
-              <textarea rows={6} value={input} onChange={(e) => setInput(e.target.value)}
-                placeholder="Paste 30 comma-separated transaction features..."
-                style={{ width: "100%", background: bg, border: `1px solid ${border}`, borderRadius: 10, color: text,
-                  padding: 12, fontSize: 12, resize: "vertical", boxSizing: "border-box", fontFamily: "monospace", lineHeight: 1.6 }} />
+              <textarea rows={7} value={input} onChange={e => setInput(e.target.value)}
+                placeholder="0,-1.35,0.07,2.53,1.37,-0.33,0.46,0.23,..."
+                style={{ width:"100%", background:"rgba(0,0,0,0.2)", border:`1px solid ${t.border}`, borderRadius:10, color:t.text,
+                  padding:"12px", fontSize:11, resize:"vertical", boxSizing:"border-box", fontFamily:"'Space Mono', monospace",
+                  lineHeight:1.8, outline:"none" }}/>
 
-              {error && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</motion.p>
-              )}
+              {error && <motion.p initial={{opacity:0}} animate={{opacity:1}} style={{ color:"#ff3d71", fontSize:11, marginTop:8, fontFamily:"'Space Mono', monospace" }}>{error}</motion.p>}
 
               <button onClick={() => handlePredict()} disabled={loading}
-                style={{ marginTop: 14, width: "100%", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-                  color: "white", border: "none", borderRadius: 10, padding: "14px", fontWeight: 700, fontSize: 15,
-                  cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                {loading ? <><RefreshCw size={16} className="spin" /> Analyzing...</> : <><ShieldCheck size={16} /> Analyze Transaction</>}
+                style={{ marginTop:14, width:"100%", background: loading ? t.card2 : "linear-gradient(135deg, #4f8ef7, #7b5cf0)",
+                  color:"white", border:"none", borderRadius:10, padding:"13px", fontWeight:700, fontSize:12,
+                  letterSpacing:"0.1em", cursor: loading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                {loading ? <><RefreshCw size={14} style={{animation:"spin 1s linear infinite"}}/> ANALYZING...</> : <><ShieldCheck size={14}/> ANALYZE TRANSACTION</>}
               </button>
             </motion.div>
 
-            {/* Result Panel */}
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            {/* Result */}
+            <motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }}
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320 }}>
               <AnimatePresence mode="wait">
                 {!result && !loading && (
-                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    style={{ textAlign: "center", color: sub }}>
-                    <ShieldCheck size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
-                    <p style={{ fontSize: 14 }}>Submit a transaction to see results</p>
+                  <motion.div key="empty" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center", color:t.sub }}>
+                    <div style={{ width:64, height:64, borderRadius:"50%", background: t.card2, border:`1px solid ${t.border}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+                      <ShieldCheck size={28} style={{ opacity:0.3 }}/>
+                    </div>
+                    <p style={{ fontSize:12, letterSpacing:"0.06em" }}>AWAITING TRANSACTION</p>
                   </motion.div>
                 )}
                 {loading && (
-                  <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-                    <p style={{ color: sub, fontSize: 14 }}>Analyzing transaction...</p>
+                  <motion.div key="loading" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center" }}>
+                    <div style={{ width:64, height:64, borderRadius:"50%", border:"2px solid #4f8ef7", borderTopColor:"transparent", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }}/>
+                    <p style={{ color:t.sub, fontSize:12, letterSpacing:"0.06em" }}>SCANNING TRANSACTION...</p>
                   </motion.div>
                 )}
                 {result && !loading && (
-                  <motion.div key="result" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                    style={{ width: "100%", textAlign: "center" }}>
-                    <GaugeMeter value={result.fraud_probability} />
-                    <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-                      <div style={{ fontSize: 32, fontWeight: 800, color: result.label === "FRAUD" ? "#ef4444" : "#22c55e", marginBottom: 8 }}>
-                        {result.label === "FRAUD" ? "🚨" : "✅"} {result.label}
+                  <motion.div key="result" initial={{scale:0.9,opacity:0}} animate={{scale:1,opacity:1}} style={{ width:"100%", textAlign:"center" }}>
+                    <GaugeMeter value={result.fraud_probability}/>
+                    <motion.div initial={{y:10,opacity:0}} animate={{y:0,opacity:1}} transition={{delay:0.2}}>
+                      <div style={{ fontSize:28, fontWeight:800, letterSpacing:"0.1em", color: result.label==="FRAUD"?"#ff3d71":"#00d68f", margin:"8px 0 4px" }}>
+                        {result.label==="FRAUD" ? "🚨" : "✅"} {result.label}
                       </div>
-                      <div style={{ fontSize: 13, color: sub }}>
-                        Confidence: <strong style={{ color: text }}>{((1 - result.fraud_probability) * 100).toFixed(1)}%</strong>
+                      <div style={{ fontSize:11, color:t.sub, letterSpacing:"0.06em", marginBottom:12 }}>
+                        CONFIDENCE: <span style={{ color:t.text, fontFamily:"'Space Mono', monospace" }}>{((1-result.fraud_probability)*100).toFixed(1)}%</span>
                       </div>
-                      <div style={{ marginTop: 16, background: result.label === "FRAUD" ? "#ef444411" : "#22c55e11",
-                        border: `1px solid ${result.label === "FRAUD" ? "#ef4444" : "#22c55e"}`,
-                        borderRadius: 10, padding: "10px 20px", fontSize: 13, color: result.label === "FRAUD" ? "#ef4444" : "#22c55e" }}>
-                        {result.label === "FRAUD" ? "⚠️ This transaction has been flagged. Review immediately." : "✔ Transaction appears safe to process."}
+                      <div style={{ background: result.label==="FRAUD" ? "rgba(255,61,113,0.08)" : "rgba(0,214,143,0.08)",
+                        border:`1px solid ${result.label==="FRAUD"?"rgba(255,61,113,0.25)":"rgba(0,214,143,0.25)"}`,
+                        borderRadius:10, padding:"10px 16px", fontSize:11, color: result.label==="FRAUD"?"#ff3d71":"#00d68f", letterSpacing:"0.04em" }}>
+                        {result.label==="FRAUD" ? "⚠ Transaction flagged. Recommend immediate review." : "✔ Transaction cleared. Safe to process."}
                       </div>
                     </motion.div>
                   </motion.div>
@@ -223,109 +232,137 @@ export default function App() {
         )}
 
         {/* History Tab */}
-        {activeTab === "history" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, overflow: "hidden" }}>
-            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${border}`, fontWeight: 700, fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <Activity size={18} color="#3b82f6" /> Transaction History
+        {activeTab==="history" && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}}
+            style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, overflow:"hidden", backdropFilter:"blur(10px)" }}>
+            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${t.border}`, fontWeight:700, fontSize:12, letterSpacing:"0.08em", color:t.sub, display:"flex", alignItems:"center", gap:8 }}>
+              <Activity size={14} color="#4f8ef7"/> TRANSACTION LOG
             </div>
-            {history.length === 0 ? (
-              <div style={{ padding: 40, textAlign: "center", color: sub }}>No transactions analyzed yet.</div>
+            {history.length===0 ? (
+              <div style={{ padding:40, textAlign:"center", color:t.sub, fontSize:12, letterSpacing:"0.06em" }}>NO TRANSACTIONS YET</div>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: card2 }}>
-                    {["#", "Time", "Label", "Fraud Probability", "Status"].map((h) => (
-                      <th key={h} style={{ padding: "12px 20px", textAlign: "left", color: sub, fontWeight: 600 }}>{h}</th>
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                  <thead>
+                    <tr style={{ background: t.card2 }}>
+                      {["#","TIME","VERDICT","RISK SCORE","STATUS"].map(h => (
+                        <th key={h} style={{ padding:"11px 16px", textAlign:"left", color:t.sub, fontWeight:600, fontSize:10, letterSpacing:"0.08em", whiteSpace:"nowrap" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((h,i) => (
+                      <motion.tr key={h.id} initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:i*0.03}}
+                        style={{ borderBottom:`1px solid ${t.border}` }}>
+                        <td style={{ padding:"11px 16px", color:t.sub, fontFamily:"'Space Mono', monospace" }}>{String(i+1).padStart(2,"0")}</td>
+                        <td style={{ padding:"11px 16px", color:t.sub, fontFamily:"'Space Mono', monospace", whiteSpace:"nowrap" }}>{h.time}</td>
+                        <td style={{ padding:"11px 16px", fontWeight:700, letterSpacing:"0.06em", color: h.label==="FRAUD"?"#ff3d71":"#00d68f" }}>{h.label}</td>
+                        <td style={{ padding:"11px 16px", fontFamily:"'Space Mono', monospace" }}>{(h.fraud_probability*100).toFixed(2)}%</td>
+                        <td style={{ padding:"11px 16px" }}>
+                          <span style={{ padding:"3px 10px", borderRadius:20, fontSize:10, fontWeight:700, letterSpacing:"0.06em",
+                            background: h.label==="FRAUD"?"rgba(255,61,113,0.12)":"rgba(0,214,143,0.12)",
+                            color: h.label==="FRAUD"?"#ff3d71":"#00d68f",
+                            border:`1px solid ${h.label==="FRAUD"?"rgba(255,61,113,0.25)":"rgba(0,214,143,0.25)"}` }}>
+                            {h.label==="FRAUD"?"FLAGGED":"CLEARED"}
+                          </span>
+                        </td>
+                      </motion.tr>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h, i) => (
-                    <motion.tr key={h.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                      style={{ borderBottom: `1px solid ${border}` }}>
-                      <td style={{ padding: "12px 20px", color: sub }}>{i + 1}</td>
-                      <td style={{ padding: "12px 20px", color: sub }}>{h.time}</td>
-                      <td style={{ padding: "12px 20px", fontWeight: 700, color: h.label === "FRAUD" ? "#ef4444" : "#22c55e" }}>{h.label}</td>
-                      <td style={{ padding: "12px 20px" }}>{(h.fraud_probability * 100).toFixed(2)}%</td>
-                      <td style={{ padding: "12px 20px" }}>
-                        <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
-                          background: h.label === "FRAUD" ? "#ef444422" : "#22c55e22",
-                          color: h.label === "FRAUD" ? "#ef4444" : "#22c55e" }}>
-                          {h.label === "FRAUD" ? "Flagged" : "Cleared"}
-                        </span>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             )}
           </motion.div>
         )}
 
         {/* Charts Tab */}
-        {activeTab === "charts" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 24 }}>
-              <div style={{ fontWeight: 700, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
-                <BarChart2 size={18} color="#3b82f6" /> Fraud Probability Trend
+        {activeTab==="charts" && (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:16 }}>
+            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)" }}>
+              <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.08em", color:t.sub, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+                <BarChart2 size={13} color="#4f8ef7"/> RISK PROBABILITY TREND
               </div>
-              {areaData.length === 0 ? <div style={{ color: sub, textAlign: "center", padding: 40 }}>No data yet</div> : (
-                <ResponsiveContainer width="100%" height={220}>
+              {areaData.length===0 ? <div style={{ color:t.sub, textAlign:"center", padding:40, fontSize:11 }}>NO DATA YET</div> : (
+                <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={areaData}>
                     <defs>
-                      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4f8ef7" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#4f8ef7" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="name" stroke={sub} fontSize={11} />
-                    <YAxis stroke={sub} fontSize={11} />
-                    <Tooltip contentStyle={{ background: card, border: `1px solid ${border}`, borderRadius: 8, color: text }} />
-                    <Area type="monotone" dataKey="probability" stroke="#3b82f6" fill="url(#grad)" strokeWidth={2} />
+                    <XAxis dataKey="n" stroke={t.sub} fontSize={10} tickLine={false}/>
+                    <YAxis stroke={t.sub} fontSize={10} tickLine={false}/>
+                    <Tooltip contentStyle={{ background: dark?"#0f1825":"#fff", border:`1px solid ${t.border}`, borderRadius:8, fontSize:11 }}/>
+                    <Area type="monotone" dataKey="p" stroke="#4f8ef7" fill="url(#g1)" strokeWidth={2} dot={false}/>
                   </AreaChart>
                 </ResponsiveContainer>
               )}
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 24 }}>
-              <div style={{ fontWeight: 700, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
-                <BarChart2 size={18} color="#8b5cf6" /> Legit vs Fraud Breakdown
+            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}}
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)" }}>
+              <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.08em", color:t.sub, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+                <Activity size={13} color="#7b5cf0"/> DETECTION BREAKDOWN
               </div>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value">
-                    <Cell fill="#22c55e" />
-                    <Cell fill="#ef4444" />
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0}>
+                    <Cell fill="#00d68f"/>
+                    <Cell fill="#ff3d71"/>
                   </Pie>
-                  <Tooltip contentStyle={{ background: card, border: `1px solid ${border}`, borderRadius: 8 }} />
+                  <Tooltip contentStyle={{ background: dark?"#0f1825":"#fff", border:`1px solid ${t.border}`, borderRadius:8, fontSize:11 }}/>
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 8 }}>
-                {[{ label: "Legit", color: "#22c55e" }, { label: "Fraud", color: "#ef4444" }].map((l) => (
-                  <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: l.color }} />
-                    <span style={{ color: sub }}>{l.label}</span>
+              <div style={{ display:"flex", justifyContent:"center", gap:20, marginTop:4 }}>
+                {[{l:"Legit",c:"#00d68f"},{l:"Fraud",c:"#ff3d71"}].map(x => (
+                  <div key={x.l} style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:t.sub }}>
+                    <div style={{ width:8, height:8, borderRadius:"50%", background:x.c }}/>
+                    {x.l.toUpperCase()}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Model Info Card */}
+            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.2}}
+              style={{ background: t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)", gridColumn:"1 / -1" }}>
+              <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.08em", color:t.sub, marginBottom:16 }}>MODEL PERFORMANCE</div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))", gap:12 }}>
+                {[
+                  { label:"ROC-AUC", value:"0.9760", color:"#4f8ef7" },
+                  { label:"Recall", value:"87%", color:"#00d68f" },
+                  { label:"Precision", value:"35%", color:"#ffaa00" },
+                  { label:"Training Set", value:"454K", color:"#7b5cf0" },
+                  { label:"Algorithm", value:"XGBoost", color:"#4f8ef7" },
+                  { label:"Balancing", value:"SMOTE", color:"#00d68f" },
+                ].map((m,i) => (
+                  <div key={i} style={{ background: t.card2, border:`1px solid ${t.border}`, borderRadius:10, padding:"12px 14px" }}>
+                    <div style={{ fontSize:16, fontWeight:700, color:m.color, fontFamily:"'Space Mono', monospace" }}>{m.value}</div>
+                    <div style={{ fontSize:10, color:t.sub, marginTop:4, letterSpacing:"0.06em" }}>{m.label.toUpperCase()}</div>
                   </div>
                 ))}
               </div>
             </motion.div>
           </div>
         )}
+
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-        textarea:focus { outline: 1px solid #3b82f6; }
-        ::-webkit-scrollbar { width: 6px; } 
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        textarea:focus { outline:1px solid #4f8ef7 !important; }
+        ::-webkit-scrollbar { width:4px; height:4px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+        button:hover { opacity:0.85; transition:opacity 0.2s; }
+        @media(max-width:480px){
+          .stat-grid { grid-template-columns: repeat(3,1fr) !important; }
+        }
       `}</style>
     </div>
   );
