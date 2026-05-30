@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, Activity, BarChart2, Zap, Moon, Sun, RefreshCw, Clock, TrendingUp, CreditCard, User, MapPin, Calendar, DollarSign } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Activity, BarChart2, Zap, Moon, Sun, RefreshCw, Clock, TrendingUp, CreditCard } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const API = "https://fraud-detection-api-5nmq.onrender.com/predict";
