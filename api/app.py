@@ -9,6 +9,7 @@ CORS(app)
 
 base = os.path.dirname(__file__)
 model = joblib.load(os.path.join(base, "../model/fraud_model.pkl"))
+scaler = joblib.load(os.path.join(base, "../model/scaler.pkl"))
 threshold = joblib.load(os.path.join(base, "../model/threshold.pkl"))
 
 @app.route("/", methods=["GET"])
@@ -19,13 +20,33 @@ def home():
 def predict():
     try:
         data = request.get_json()
-        features = data.get("features")
 
-        if not features or len(features) != 30:
-            return jsonify({"error": "Provide exactly 30 features"}), 400
+        # Accept either raw features array or named fields
+        if "features" in data:
+            features = data["features"]
+            if len(features) != 10:
+                return jsonify({"error": "Provide exactly 10 features: amt, category, gender, city_pop, age, hour, day, month, distance, unix_time"}), 400
+            input_array = np.array(features).reshape(1, -1)
 
-        input_array = np.array(features).reshape(1, -1)
-        probability = model.predict_proba(input_array)[0][1]
+        elif "transaction" in data:
+            t = data["transaction"]
+            input_array = np.array([[
+                t.get("amt", 0),
+                t.get("category", 0),
+                t.get("gender", 0),
+                t.get("city_pop", 0),
+                t.get("age", 0),
+                t.get("hour", 0),
+                t.get("day", 0),
+                t.get("month", 0),
+                t.get("distance", 0),
+                t.get("unix_time", 0)
+            ]])
+        else:
+            return jsonify({"error": "Provide either 'features' array or 'transaction' object"}), 400
+
+        input_scaled = scaler.transform(input_array)
+        probability = model.predict_proba(input_scaled)[0][1]
         prediction = int(probability >= threshold)
 
         if probability < 0.30:
