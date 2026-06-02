@@ -125,13 +125,14 @@ export default function App() {
 
         {/* Header */}
         <Box sx={{
-          position: "sticky", top: 0, zIndex: 100,
-          bgcolor: dark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)",
-          backdropFilter: "blur(12px)",
-          borderBottom: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
-          px: { xs: 2, md: 4 }, py: 1.5,
-          display: "flex", alignItems: "center", justifyContent: "space-between"
-        }}>
+  position: "sticky", top: 0, zIndex: 100,
+  bgcolor: dark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)",
+  backdropFilter: "blur(12px)",
+  borderBottom: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
+  px: { xs: 2, md: 4 }, py: 1.5,
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  overflow: "hidden"
+}}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Avatar sx={{ bgcolor: "primary.main", width: 38, height: 38, borderRadius: 2 }}>
               <SecurityIcon fontSize="small" />
@@ -156,13 +157,13 @@ export default function App() {
         </Box>
 
         {/* Hero Banner */}
-        <Box sx={{
-          background: dark
-            ? "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)"
-            : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
-          px: { xs: 2, md: 6 }, py: { xs: 4, md: 5 },
-          display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2
-        }}>
+       <Box sx={{
+  background: dark
+    ? "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)"
+    : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+  px: { xs: 2, md: 6 }, py: { xs: 3, md: 5 },
+  overflow: "hidden"
+}}>
           <Box>
             <Typography variant="h4" fontWeight={800} color="white" sx={{ fontSize: { xs: 22, md: 30 } }}>
               Fraud Detection System
@@ -177,12 +178,12 @@ export default function App() {
               ))}
             </Box>
           </Box>
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            {[
-              { label: "ROC-AUC", value: "0.9971", icon: <TrendingUpIcon /> },
-              { label: "Recall", value: "87%", icon: <ShieldIcon /> },
-              { label: "F1-Score", value: "0.70", icon: <AccountBalanceIcon /> },
-            ].map((m, i) => (
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, flexWrap: "wrap" }}>
+  {[
+    { label: "ROC-AUC", value: "0.9971", icon: <TrendingUpIcon /> },
+    { label: "Recall", value: "87%", icon: <ShieldIcon /> },
+    { label: "F1-Score", value: "0.70", icon: <AccountBalanceIcon /> },
+  ].map((m, i) => (
               <Box key={i} sx={{ bgcolor: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, px: 2, py: 1.5, textAlign: "center", minWidth: 80 }}>
                 <Typography color="white" fontWeight={700} fontSize={18}>{m.value}</Typography>
                 <Typography color="rgba(255,255,255,0.7)" fontSize={10}>{m.label}</Typography>
