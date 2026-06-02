@@ -195,7 +195,7 @@ export default function App() {
         <Box sx={{ maxWidth: 1100, mx: "auto", px: { xs: 2, md: 3 }, py: 3 }}>
 
           {/* Stat Cards */}
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2, mb: 3 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: { xs: 1, md: 2 }, mb: 3 }}>
             {[
               { label: "Analyzed", value: stats.total, color: "#2563eb", bg: "#eff6ff", icon: <BarChartIcon /> },
               { label: "Flagged", value: stats.fraud, color: "#dc2626", bg: "#fef2f2", icon: <WarningAmberIcon /> },
@@ -203,15 +203,17 @@ export default function App() {
             ].map((s, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
                 <Card>
-                  <CardContent sx={{ display: "flex", alignItems: "center", gap: 1.5, py: "14px !important", px: "16px !important" }}>
-                    <Avatar sx={{ bgcolor: dark ? `${s.color}22` : s.bg, color: s.color, width: 36, height: 36, borderRadius: 2 }}>
-                      {s.icon}
-                    </Avatar>
-                    <Box>
-                      <Typography fontWeight={700} fontSize={20}>{s.value}</Typography>
-                      <Typography fontSize={11} color="text.secondary">{s.label}</Typography>
-                    </Box>
-                  </CardContent>
+                  <CardContent sx={{ py: "12px !important", px: { xs: "10px !important", md: "16px !important" } }}>
+  <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.8, md: 1.5 }, flexWrap: "wrap" }}>
+    <Avatar sx={{ bgcolor: dark ? `${s.color}22` : s.bg, color: s.color, width: { xs: 28, md: 36 }, height: { xs: 28, md: 36 }, borderRadius: 2, display: { xs: "none", md: "flex" } }}>
+      {s.icon}
+    </Avatar>
+    <Box>
+      <Typography fontWeight={700} fontSize={{ xs: 16, md: 20 }}>{s.value}</Typography>
+      <Typography fontSize={{ xs: 10, md: 11 }} color="text.secondary" noWrap>{s.label}</Typography>
+    </Box>
+  </Box>
+</CardContent>
                 </Card>
               </motion.div>
             ))}
