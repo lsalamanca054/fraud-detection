@@ -1,8 +1,24 @@
 import { useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, ShieldAlert, Activity, BarChart2, Zap, Moon, Sun, RefreshCw, Clock, TrendingUp, CreditCard } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import {
+  Box, Card, CardContent, Typography, Button, TextField, MenuItem,
+  Select, FormControl, InputLabel, Chip, Avatar, IconButton,
+  Divider, LinearProgress, Tooltip, Switch, FormControlLabel
+} from "@mui/material";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import ShieldIcon from "@mui/icons-material/Shield";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import HistoryIcon from "@mui/icons-material/History";
+import BoltIcon from "@mui/icons-material/Bolt";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import SecurityIcon from "@mui/icons-material/Security";
+import { AreaChart, Area, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const API = "https://fraud-detection-api-5nmq.onrender.com/predict";
 
@@ -19,9 +35,8 @@ const CATEGORIES = [
   { label: "Travel", value: 9 },
 ];
 
-const SAMPLE_LEGIT = { amt: 25.50, category: 2, gender: 0, city_pop: 45000, age: 42, hour: 14, day: 2, month: 6, distance: 2.3, unix_time: 1371816830 };
-const SAMPLE_FRAUD = { amt: 1000.00, category: 5, gender: 1, city_pop: 500, age: 35, hour: 23, day: 4, month: 1, distance: 50.5, unix_time: 1325376018 };
-
+const SAMPLE_LEGIT = { amt: "25.50", category: "2", gender: "0", city_pop: "45000", age: "42", hour: "14", day: "2", month: "6", distance: "2.3", unix_time: "1371816830" };
+const SAMPLE_FRAUD = { amt: "1000.00", category: "5", gender: "1", city_pop: "500", age: "35", hour: "23", day: "4", month: "1", distance: "50.5", unix_time: "1325376018" };
 const defaultForm = { amt: "", category: "0", gender: "0", city_pop: "", age: "", hour: "", day: "", month: "", distance: "", unix_time: "" };
 
 export default function App() {
@@ -30,23 +45,46 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(false);
   const [stats, setStats] = useState({ total: 0, fraud: 0, legit: 0 });
   const [activeTab, setActiveTab] = useState("analyze");
 
-  const t = dark ? {
-    bg: "#060910", card: "rgba(255,255,255,0.04)", card2: "rgba(255,255,255,0.07)",
-    border: "rgba(255,255,255,0.08)", text: "#f0f4ff", sub: "#6b7fa3",
-    header: "rgba(6,9,16,0.92)", input: "rgba(0,0,0,0.3)"
-  } : {
-    bg: "#f0f4ff", card: "rgba(255,255,255,0.9)", card2: "rgba(255,255,255,0.6)",
-    border: "rgba(0,0,30,0.08)", text: "#060910", sub: "#5a6a8a",
-    header: "rgba(240,244,255,0.92)", input: "rgba(255,255,255,0.8)"
-  };
+  const theme = createTheme({
+    palette: {
+      mode: dark ? "dark" : "light",
+      primary: { main: "#2563eb" },
+      secondary: { main: "#7c3aed" },
+      success: { main: "#16a34a" },
+      error: { main: "#dc2626" },
+      warning: { main: "#d97706" },
+      background: {
+        default: dark ? "#0f172a" : "#f8fafc",
+        paper: dark ? "#1e293b" : "#ffffff",
+      },
+    },
+    typography: {
+      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    },
+    shape: { borderRadius: 12 },
+    components: {
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            boxShadow: dark ? "0 1px 3px rgba(0,0,0,0.4)" : "0 1px 3px rgba(0,0,0,0.08)",
+            border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
+          }
+        }
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: { textTransform: "none", fontWeight: 600, borderRadius: 8 }
+        }
+      }
+    }
+  });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const loadSample = (sample) => setForm(Object.fromEntries(Object.entries(sample).map(([k, v]) => [k, String(v)])));
+  const loadSample = (sample) => { setForm(sample); setResult(null); setError(""); };
 
   const handlePredict = async () => {
     setError(""); setResult(null);
@@ -71,376 +109,432 @@ export default function App() {
       const r = { ...res.data, id: Date.now(), time: new Date().toLocaleTimeString(), amt: form.amt };
       setResult(r);
       setHistory(p => [r, ...p.slice(0, 19)]);
-      setStats(p => ({ total: p.total+1, fraud: p.fraud+(r.label==="FRAUD"?1:0), legit: p.legit+(r.label==="LEGIT"?1:0) }));
+      setStats(p => ({ total: p.total + 1, fraud: p.fraud + (r.label === "FRAUD" ? 1 : 0), legit: p.legit + (r.label === "LEGIT" ? 1 : 0) }));
       setForm(defaultForm);
     } catch { setError("API error. Please try again."); }
     setLoading(false);
   };
 
-  const GaugeMeter = ({ value }) => {
-    const pct = value * 100;
-    const color = pct < 30 ? "#00d68f" : pct < 70 ? "#ffaa00" : "#ff3d71";
-    const r = 70, cx = 100, cy = 100;
-    const toXY = (deg) => { const rad = (deg-90)*Math.PI/180; return { x: cx+r*Math.cos(rad), y: cy+r*Math.sin(rad) }; };
-    const start = toXY(-135), end = toXY(-135+(pct/100)*270);
-    const large = (pct/100)*270 > 180 ? 1 : 0;
-    return (
-      <div style={{ textAlign:"center" }}>
-        <svg viewBox="0 0 200 160" width="100%" style={{ maxWidth:240 }}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke={t.border} strokeWidth="12" strokeDasharray="339 1000" strokeDashoffset="-85" strokeLinecap="round"/>
-          {pct > 0 && <path d={`M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 1 ${end.x} ${end.y}`} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"/>}
-          <text x={cx} y={cy-8} textAnchor="middle" fill={color} fontSize="26" fontWeight="700" fontFamily="'Space Mono',monospace">{pct.toFixed(1)}%</text>
-          <text x={cx} y={cy+12} textAnchor="middle" fill={t.sub} fontSize="11" fontFamily="'Syne',sans-serif">FRAUD RISK SCORE</text>
-        </svg>
-      </div>
-    );
-  };
-
-  const inputStyle = (full) => ({
-    width: "100%", background: t.input, border: `1px solid ${t.border}`,
-    borderRadius: 8, color: t.text, padding: "10px 12px", fontSize: 12,
-    fontFamily: "'Space Mono', monospace", outline: "none", boxSizing: "border-box",
-    gridColumn: full ? "1 / -1" : "auto"
-  });
-
-  const selectStyle = { ...inputStyle(), appearance: "none" };
-
-  const areaData = history.slice().reverse().map((h,i) => ({ n: i+1, p: +(h.fraud_probability*100).toFixed(2) }));
-  const pieData = [{ name:"Legit", value: stats.legit||1 }, { name:"Fraud", value: stats.fraud||0 }];
-
-  const Field = ({ label, name, type="number", placeholder="" }) => (
-    <div>
-      <label style={{ fontSize:10, color:t.sub, letterSpacing:"0.08em", display:"block", marginBottom:4 }}>{label}</label>
-      <input type={type} name={name} value={form[name]} onChange={handleChange} placeholder={placeholder} style={inputStyle()}/>
-    </div>
-  );
+  const triageColor = (t) => t === "HIGH" ? "#dc2626" : t === "MEDIUM" ? "#d97706" : "#16a34a";
+  const areaData = history.slice().reverse().map((h, i) => ({ n: i + 1, p: +(h.fraud_probability * 100).toFixed(2) }));
+  const pieData = [{ name: "Legit", value: stats.legit || 1 }, { name: "Fraud", value: stats.fraud || 0 }];
 
   return (
-    <div style={{ minHeight:"100vh", background:t.bg, color:t.text, fontFamily:"'Syne',sans-serif", transition:"all 0.3s", overflowX:"hidden" }}>
+    <ThemeProvider theme={theme}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "background.default", color: "text.primary", transition: "all 0.3s" }}>
 
-      {/* BG Grid */}
-      <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, overflow:"hidden" }}>
-        <svg width="100%" height="100%" style={{ opacity: dark?0.04:0.05 }}>
-          <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke={dark?"#4f8ef7":"#060910"} strokeWidth="0.5"/></pattern></defs>
-          <rect width="100%" height="100%" fill="url(#grid)"/>
-        </svg>
-        {dark && <>
-          <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle, rgba(79,142,247,0.1) 0%, transparent 70%)", top:-150, right:-150 }}/>
-          <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle, rgba(255,61,113,0.07) 0%, transparent 70%)", bottom:50, left:-100 }}/>
-        </>}
-      </div>
+        {/* Header */}
+        <Box sx={{
+          position: "sticky", top: 0, zIndex: 100,
+          bgcolor: dark ? "rgba(15,23,42,0.95)" : "rgba(255,255,255,0.95)",
+          backdropFilter: "blur(12px)",
+          borderBottom: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
+          px: { xs: 2, md: 4 }, py: 1.5,
+          display: "flex", alignItems: "center", justifyContent: "space-between"
+        }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Avatar sx={{ bgcolor: "primary.main", width: 38, height: 38, borderRadius: 2 }}>
+              <SecurityIcon fontSize="small" />
+            </Avatar>
+            <Box>
+              <Typography fontWeight={700} fontSize={16} letterSpacing={0.5}>FraudShield</Typography>
+              <Typography fontSize={10} color="text.secondary">AI-Powered Transaction Security</Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Chip
+              size="small"
+              label="● Live"
+              sx={{ bgcolor: "#dcfce7", color: "#16a34a", fontWeight: 600, fontSize: 11, border: "1px solid #bbf7d0" }}
+            />
+            <Tooltip title={dark ? "Light mode" : "Dark mode"}>
+              <IconButton onClick={() => setDark(!dark)} size="small">
+                {dark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
 
-      {/* Header */}
-      <div style={{ position:"sticky", top:0, zIndex:100, backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", background:t.header, borderBottom:`1px solid ${t.border}`, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#4f8ef7,#7b5cf0)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <ShieldCheck size={18} color="white"/>
-          </div>
-          <div>
-            <div style={{ fontWeight:700, fontSize:16, letterSpacing:"0.05em" }}>FRAUDSHIELD</div>
-            <div style={{ fontSize:10, color:t.sub, letterSpacing:"0.1em" }}>SMOTE · XGBOOST · REAL-TIME API</div>
-          </div>
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(0,214,143,0.1)", border:"1px solid rgba(0,214,143,0.2)", padding:"5px 10px", borderRadius:20 }}>
-            <div style={{ width:6, height:6, borderRadius:"50%", background:"#00d68f", animation:"blink 2s ease-in-out infinite" }}/>
-            <span style={{ fontSize:11, color:"#00d68f", fontWeight:600, letterSpacing:"0.08em" }}>LIVE</span>
-          </div>
-          <button onClick={() => setDark(!dark)} style={{ background:t.card2, border:`1px solid ${t.border}`, borderRadius:8, padding:"7px 10px", cursor:"pointer", color:t.text, display:"flex", alignItems:"center" }}>
-            {dark ? <Sun size={15}/> : <Moon size={15}/>}
-          </button>
-        </div>
-      </div>
+        {/* Hero Banner */}
+        <Box sx={{
+          background: dark
+            ? "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)"
+            : "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+          px: { xs: 2, md: 6 }, py: { xs: 4, md: 5 },
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2
+        }}>
+          <Box>
+            <Typography variant="h4" fontWeight={800} color="white" sx={{ fontSize: { xs: 22, md: 30 } }}>
+              Fraud Detection System
+            </Typography>
+            <Typography color="rgba(255,255,255,0.75)" fontSize={13} mt={0.5}>
+              SMOTE-Enriched XGBoost · Real-Time Flask API · ROC-AUC 0.9971
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, mt: 2, flexWrap: "wrap" }}>
+              {["XGBoost", "SMOTE", "Real-Time", "Flask API"].map(tag => (
+                <Chip key={tag} label={tag} size="small"
+                  sx={{ bgcolor: "rgba(255,255,255,0.15)", color: "white", fontSize: 10, fontWeight: 600, border: "1px solid rgba(255,255,255,0.2)" }} />
+              ))}
+            </Box>
+          </Box>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            {[
+              { label: "ROC-AUC", value: "0.9971", icon: <TrendingUpIcon /> },
+              { label: "Recall", value: "87%", icon: <ShieldIcon /> },
+              { label: "F1-Score", value: "0.70", icon: <AccountBalanceIcon /> },
+            ].map((m, i) => (
+              <Box key={i} sx={{ bgcolor: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, px: 2, py: 1.5, textAlign: "center", minWidth: 80 }}>
+                <Typography color="white" fontWeight={700} fontSize={18}>{m.value}</Typography>
+                <Typography color="rgba(255,255,255,0.7)" fontSize={10}>{m.label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
 
-      <div style={{ position:"relative", zIndex:1, padding:"24px 16px", maxWidth:1100, margin:"0 auto" }}>
+        <Box sx={{ maxWidth: 1100, mx: "auto", px: { xs: 2, md: 3 }, py: 3 }}>
 
-        {/* Stats */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:24 }}>
-          {[
-            { label:"ANALYZED", value:stats.total, icon:<Activity size={16}/>, color:"#4f8ef7" },
-            { label:"FLAGGED", value:stats.fraud, icon:<ShieldAlert size={16}/>, color:"#ff3d71" },
-            { label:"CLEARED", value:stats.legit, icon:<ShieldCheck size={16}/>, color:"#00d68f" },
-          ].map((s,i) => (
-            <motion.div key={i} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:i*0.08}}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:14, padding:"12px 10px", backdropFilter:"blur(10px)", display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ background:`${s.color}18`, border:`1px solid ${s.color}33`, borderRadius:10, padding:8, color:s.color, flexShrink:0 }}>{s.icon}</div>
-              <div>
-                <div style={{ fontSize:20, fontWeight:700, fontFamily:"'Space Mono',monospace" }}>{s.value}</div>
-                <div style={{ fontSize:10, color:t.sub, letterSpacing:"0.06em" }}>{s.label}</div>
-              </div>
+          {/* Stat Cards */}
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 2, mb: 3 }}>
+            {[
+              { label: "Analyzed", value: stats.total, color: "#2563eb", bg: "#eff6ff", icon: <BarChartIcon /> },
+              { label: "Flagged", value: stats.fraud, color: "#dc2626", bg: "#fef2f2", icon: <WarningAmberIcon /> },
+              { label: "Cleared", value: stats.legit, color: "#16a34a", bg: "#f0fdf4", icon: <CheckCircleIcon /> },
+            ].map((s, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+                <Card>
+                  <CardContent sx={{ display: "flex", alignItems: "center", gap: 1.5, py: "14px !important", px: "16px !important" }}>
+                    <Avatar sx={{ bgcolor: dark ? `${s.color}22` : s.bg, color: s.color, width: 36, height: 36, borderRadius: 2 }}>
+                      {s.icon}
+                    </Avatar>
+                    <Box>
+                      <Typography fontWeight={700} fontSize={20}>{s.value}</Typography>
+                      <Typography fontSize={11} color="text.secondary">{s.label}</Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+
+          {/* Tabs */}
+          <Box sx={{ display: "flex", gap: 1, mb: 3, bgcolor: "background.paper", borderRadius: 2, p: 0.5, border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)" }}>
+            {[
+              { id: "analyze", label: "Analyze", icon: <BoltIcon fontSize="small" /> },
+              { id: "history", label: "History", icon: <HistoryIcon fontSize="small" /> },
+              { id: "charts", label: "Charts", icon: <BarChartIcon fontSize="small" /> },
+            ].map(tab => (
+              <Button key={tab.id} onClick={() => setActiveTab(tab.id)} startIcon={tab.icon} fullWidth
+                variant={activeTab === tab.id ? "contained" : "text"}
+                color={activeTab === tab.id ? "primary" : "inherit"}
+                sx={{ py: 1, fontSize: 12, color: activeTab === tab.id ? "white" : "text.secondary" }}>
+                {tab.label}
+              </Button>
+            ))}
+          </Box>
+
+          {/* Analyze Tab */}
+          {activeTab === "analyze" && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+
+              {/* Form */}
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+                <Card>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
+                      <AccountBalanceIcon color="primary" fontSize="small" />
+                      <Typography fontWeight={700} fontSize={14}>Transaction Details</Typography>
+                    </Box>
+
+                    <Box sx={{ display: "flex", gap: 1.5, mb: 2.5 }}>
+                      <Button fullWidth variant="outlined" color="success" size="small"
+                        onClick={() => loadSample(SAMPLE_LEGIT)}
+                        sx={{ borderRadius: 2, fontSize: 11, py: 1 }}>
+                        ✓ Legit Sample
+                      </Button>
+                      <Button fullWidth variant="outlined" color="error" size="small"
+                        onClick={() => loadSample(SAMPLE_FRAUD)}
+                        sx={{ borderRadius: 2, fontSize: 11, py: 1 }}>
+                        ⚠ Fraud Sample
+                      </Button>
+                    </Box>
+
+                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                      <TextField fullWidth label="Amount (₦)" name="amt" value={form.amt}
+                        onChange={handleChange} size="small" type="number" placeholder="e.g. 250.00"
+                        sx={{ gridColumn: "1 / -1" }} />
+
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Category</InputLabel>
+                        <Select name="category" value={form.category} onChange={handleChange} label="Category">
+                          {CATEGORIES.map(c => <MenuItem key={c.value} value={String(c.value)}>{c.label}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Gender</InputLabel>
+                        <Select name="gender" value={form.gender} onChange={handleChange} label="Gender">
+                          <MenuItem value="0">Female</MenuItem>
+                          <MenuItem value="1">Male</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      <TextField fullWidth label="City Population" name="city_pop" value={form.city_pop} onChange={handleChange} size="small" type="number" placeholder="e.g. 45000" />
+                      <TextField fullWidth label="Cardholder Age" name="age" value={form.age} onChange={handleChange} size="small" type="number" placeholder="e.g. 35" />
+                      <TextField fullWidth label="Hour (0-23)" name="hour" value={form.hour} onChange={handleChange} size="small" type="number" placeholder="e.g. 23" />
+                      <TextField fullWidth label="Day (0=Mon, 6=Sun)" name="day" value={form.day} onChange={handleChange} size="small" type="number" placeholder="e.g. 4" />
+                      <TextField fullWidth label="Month (1-12)" name="month" value={form.month} onChange={handleChange} size="small" type="number" placeholder="e.g. 1" />
+                      <TextField fullWidth label="Distance (km)" name="distance" value={form.distance} onChange={handleChange} size="small" type="number" placeholder="e.g. 50.5" />
+                      <TextField fullWidth label="Unix Timestamp" name="unix_time" value={form.unix_time} onChange={handleChange} size="small" type="number" placeholder="e.g. 1325376018" sx={{ gridColumn: "1 / -1" }} />
+                    </Box>
+
+                    {error && (
+                      <Typography color="error" fontSize={12} mt={1.5}>{error}</Typography>
+                    )}
+
+                    <Button fullWidth variant="contained" color="primary" size="large"
+                      onClick={handlePredict} disabled={loading}
+                      startIcon={loading ? null : <ShieldIcon />}
+                      sx={{ mt: 2.5, py: 1.4, fontSize: 13, fontWeight: 700, borderRadius: 2 }}>
+                      {loading ? "Analyzing Transaction..." : "Analyze Transaction"}
+                    </Button>
+                    {loading && <LinearProgress sx={{ mt: 1, borderRadius: 1 }} />}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Result */}
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                <Card sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <AnimatePresence mode="wait">
+                      {!result && !loading && (
+                        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <Box sx={{ textAlign: "center", py: 6 }}>
+                            <Avatar sx={{ width: 64, height: 64, bgcolor: dark ? "rgba(37,99,235,0.1)" : "#eff6ff", mx: "auto", mb: 2 }}>
+                              <ShieldIcon sx={{ color: "primary.main", fontSize: 32, opacity: 0.4 }} />
+                            </Avatar>
+                            <Typography color="text.secondary" fontSize={13}>Awaiting transaction</Typography>
+                            <Typography color="text.secondary" fontSize={12} mt={0.5}>Fill the form or load a sample to begin</Typography>
+                          </Box>
+                        </motion.div>
+                      )}
+
+                      {result && !loading && (
+                        <motion.div key="result" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                          <Box sx={{ textAlign: "center" }}>
+
+                            {/* Icon */}
+                            <Avatar sx={{
+                              width: 72, height: 72, mx: "auto", mb: 2,
+                              bgcolor: result.label === "FRAUD" ? "#fef2f2" : "#f0fdf4",
+                              border: `2px solid ${result.label === "FRAUD" ? "#fecaca" : "#bbf7d0"}`
+                            }}>
+                              {result.label === "FRAUD"
+                                ? <WarningAmberIcon sx={{ color: "#dc2626", fontSize: 36 }} />
+                                : <CheckCircleIcon sx={{ color: "#16a34a", fontSize: 36 }} />}
+                            </Avatar>
+
+                            <Typography fontWeight={800} fontSize={28} color={result.label === "FRAUD" ? "error.main" : "success.main"}>
+                              {result.label}
+                            </Typography>
+
+                            <Typography color="text.secondary" fontSize={12} mt={0.5} mb={2}>
+                              Fraud Probability: <strong>{(result.fraud_probability * 100).toFixed(2)}%</strong>
+                            </Typography>
+
+                            {/* Progress Bar */}
+                            <Box sx={{ mb: 2 }}>
+                              <LinearProgress variant="determinate" value={result.fraud_probability * 100}
+                                sx={{
+                                  height: 8, borderRadius: 4,
+                                  bgcolor: dark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
+                                  "& .MuiLinearProgress-bar": {
+                                    bgcolor: result.fraud_probability > 0.7 ? "#dc2626" : result.fraud_probability > 0.3 ? "#d97706" : "#16a34a",
+                                    borderRadius: 4
+                                  }
+                                }} />
+                            </Box>
+
+                            {/* Triage Badge */}
+                            <Chip label={`Triage: ${result.triage}`} size="small"
+                              sx={{
+                                mb: 2, fontWeight: 700, fontSize: 11,
+                                bgcolor: result.triage === "HIGH" ? "#fef2f2" : result.triage === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
+                                color: triageColor(result.triage),
+                                border: `1px solid ${result.triage === "HIGH" ? "#fecaca" : result.triage === "MEDIUM" ? "#fde68a" : "#bbf7d0"}`
+                              }} />
+
+                            <Divider sx={{ my: 2 }} />
+
+                            {/* Verdict Box */}
+                            <Box sx={{
+                              bgcolor: result.label === "FRAUD" ? (dark ? "rgba(220,38,38,0.1)" : "#fef2f2") : (dark ? "rgba(22,163,74,0.1)" : "#f0fdf4"),
+                              border: `1px solid ${result.label === "FRAUD" ? "#fecaca" : "#bbf7d0"}`,
+                              borderRadius: 2, p: 2
+                            }}>
+                              <Typography fontSize={12} color={result.label === "FRAUD" ? "error.main" : "success.main"} fontWeight={500}>
+                                {result.triage === "HIGH" ? "⚠ High risk detected. Block transaction and alert analyst immediately." :
+                                  result.triage === "MEDIUM" ? "⚡ Medium risk. Flag for secondary verification (OTP required)." :
+                                    "✔ Low risk. Transaction cleared. Safe to process."}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Box>
+          )}
+
+          {/* History Tab */}
+          {activeTab === "history" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Card>
+                <CardContent sx={{ p: 0 }}>
+                  <Box sx={{ px: 3, py: 2, borderBottom: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 1 }}>
+                    <HistoryIcon color="primary" fontSize="small" />
+                    <Typography fontWeight={700} fontSize={14}>Transaction Log</Typography>
+                    <Chip label={`${history.length} records`} size="small" sx={{ ml: "auto", fontSize: 10 }} />
+                  </Box>
+                  {history.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
+                      <Typography fontSize={13}>No transactions analyzed yet</Typography>
+                    </Box>
+                  ) : (
+                    <Box sx={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ background: dark ? "rgba(255,255,255,0.03)" : "#f8fafc" }}>
+                            {["#", "Time", "Amount", "Verdict", "Risk %", "Triage", "Status"].map(h => (
+                              <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.05em" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {history.map((h, i) => (
+                            <tr key={h.id} style={{ borderTop: dark ? "1px solid rgba(255,255,255,0.04)" : "1px solid #f1f5f9" }}>
+                              <td style={{ padding: "12px 16px", color: "#94a3b8" }}>{String(i + 1).padStart(2, "0")}</td>
+                              <td style={{ padding: "12px 16px", color: "#94a3b8" }}>{h.time}</td>
+                              <td style={{ padding: "12px 16px", fontWeight: 600 }}>₦{parseFloat(h.amt).toFixed(2)}</td>
+                              <td style={{ padding: "12px 16px", fontWeight: 700, color: h.label === "FRAUD" ? "#dc2626" : "#16a34a" }}>{h.label}</td>
+                              <td style={{ padding: "12px 16px" }}>{(h.fraud_probability * 100).toFixed(2)}%</td>
+                              <td style={{ padding: "12px 16px" }}>
+                                <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: h.triage === "HIGH" ? "#fef2f2" : h.triage === "MEDIUM" ? "#fffbeb" : "#f0fdf4", color: triageColor(h.triage) }}>
+                                  {h.triage}
+                                </span>
+                              </td>
+                              <td style={{ padding: "12px 16px" }}>
+                                <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: h.label === "FRAUD" ? "#fef2f2" : "#f0fdf4", color: h.label === "FRAUD" ? "#dc2626" : "#16a34a" }}>
+                                  {h.label === "FRAUD" ? "Flagged" : "Cleared"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
             </motion.div>
-          ))}
-        </div>
+          )}
 
-        {/* Tabs */}
-        <div style={{ display:"flex", gap:6, marginBottom:20, background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:4, backdropFilter:"blur(10px)" }}>
-          {[{id:"analyze",icon:<Zap size={14}/>},{id:"history",icon:<Clock size={14}/>},{id:"charts",icon:<TrendingUp size={14}/>}].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              style={{ flex:1, padding:"9px 12px", borderRadius:9, border:"none", cursor:"pointer", fontWeight:600, fontSize:12, letterSpacing:"0.06em", textTransform:"uppercase", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-                background: activeTab===tab.id ? "linear-gradient(135deg,#4f8ef7,#7b5cf0)" : "transparent",
-                color: activeTab===tab.id ? "white" : t.sub }}>
-              {tab.icon}{tab.id}
-            </button>
-          ))}
-        </div>
+          {/* Charts Tab */}
+          {activeTab === "charts" && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <Card>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography fontWeight={700} fontSize={13} mb={2}>Risk Probability Trend</Typography>
+                    {areaData.length === 0 ? (
+                      <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}><Typography fontSize={12}>No data yet</Typography></Box>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={200}>
+                        <AreaChart data={areaData}>
+                          <defs>
+                            <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="n" fontSize={10} tickLine={false} />
+                          <YAxis fontSize={10} tickLine={false} />
+                          <RTooltip contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+                          <Area type="monotone" dataKey="p" stroke="#2563eb" fill="url(#g1)" strokeWidth={2} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-        {/* Analyze Tab */}
-        {activeTab==="analyze" && (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))", gap:16 }}>
-
-            {/* Form */}
-            <motion.div initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:24, backdropFilter:"blur(10px)" }}>
-              <div style={{ fontWeight:700, fontSize:13, letterSpacing:"0.08em", color:t.sub, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
-                <CreditCard size={14} color="#4f8ef7"/> TRANSACTION DETAILS
-              </div>
-
-              {/* Sample Buttons */}
-              <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-                <button onClick={() => loadSample(SAMPLE_LEGIT)}
-                  style={{ flex:1, padding:"8px", borderRadius:8, border:"1px solid rgba(0,214,143,0.3)", background:"rgba(0,214,143,0.07)", color:"#00d68f", cursor:"pointer", fontSize:11, fontWeight:700, letterSpacing:"0.05em" }}>
-                  ✓ LEGIT SAMPLE
-                </button>
-                <button onClick={() => loadSample(SAMPLE_FRAUD)}
-                  style={{ flex:1, padding:"8px", borderRadius:8, border:"1px solid rgba(255,61,113,0.3)", background:"rgba(255,61,113,0.07)", color:"#ff3d71", cursor:"pointer", fontSize:11, fontWeight:700, letterSpacing:"0.05em" }}>
-                  ⚠ FRAUD SAMPLE
-                </button>
-              </div>
-
-              {/* Form Grid */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-                <div style={{ gridColumn:"1 / -1" }}>
-                  <label style={{ fontSize:10, color:t.sub, letterSpacing:"0.08em", display:"block", marginBottom:4 }}>TRANSACTION AMOUNT (₦)</label>
-                  <input type="number" name="amt" value={form.amt} onChange={handleChange} placeholder="e.g. 250.00" style={inputStyle()}/>
-                </div>
-
-                <div>
-                  <label style={{ fontSize:10, color:t.sub, letterSpacing:"0.08em", display:"block", marginBottom:4 }}>CATEGORY</label>
-                  <select name="category" value={form.category} onChange={handleChange} style={selectStyle}>
-                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize:10, color:t.sub, letterSpacing:"0.08em", display:"block", marginBottom:4 }}>GENDER</label>
-                  <select name="gender" value={form.gender} onChange={handleChange} style={selectStyle}>
-                    <option value="0">Female</option>
-                    <option value="1">Male</option>
-                  </select>
-                </div>
-
-                <Field label="CITY POPULATION" name="city_pop" placeholder="e.g. 45000"/>
-                <Field label="CARDHOLDER AGE" name="age" placeholder="e.g. 35"/>
-                <Field label="HOUR (0-23)" name="hour" placeholder="e.g. 23"/>
-                <Field label="DAY (0=Mon, 6=Sun)" name="day" placeholder="e.g. 4"/>
-                <Field label="MONTH (1-12)" name="month" placeholder="e.g. 1"/>
-                <Field label="DISTANCE (km)" name="distance" placeholder="e.g. 50.5"/>
-
-                <div style={{ gridColumn:"1 / -1" }}>
-                  <label style={{ fontSize:10, color:t.sub, letterSpacing:"0.08em", display:"block", marginBottom:4 }}>UNIX TIMESTAMP</label>
-                  <input type="number" name="unix_time" value={form.unix_time} onChange={handleChange} placeholder="e.g. 1325376018" style={inputStyle()}/>
-                </div>
-              </div>
-
-              {error && <motion.p initial={{opacity:0}} animate={{opacity:1}} style={{ color:"#ff3d71", fontSize:11, marginBottom:10, fontFamily:"'Space Mono',monospace" }}>{error}</motion.p>}
-
-              <button onClick={handlePredict} disabled={loading}
-                style={{ width:"100%", background: loading ? t.card2 : "linear-gradient(135deg,#4f8ef7,#7b5cf0)",
-                  color:"white", border:"none", borderRadius:10, padding:"13px", fontWeight:700, fontSize:12,
-                  letterSpacing:"0.1em", cursor: loading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                {loading ? <><RefreshCw size={14} style={{animation:"spin 1s linear infinite"}}/> ANALYZING...</> : <><ShieldCheck size={14}/> ANALYZE TRANSACTION</>}
-              </button>
-            </motion.div>
-
-            {/* Result */}
-            <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:24, backdropFilter:"blur(10px)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:400 }}>
-              <AnimatePresence mode="wait">
-                {!result && !loading && (
-                  <motion.div key="empty" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center", color:t.sub }}>
-                    <div style={{ width:64, height:64, borderRadius:"50%", background:t.card2, border:`1px solid ${t.border}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
-                      <ShieldCheck size={28} style={{ opacity:0.3 }}/>
-                    </div>
-                    <p style={{ fontSize:12, letterSpacing:"0.06em" }}>AWAITING TRANSACTION</p>
-                    <p style={{ fontSize:11, color:t.sub, marginTop:8 }}>Fill the form or load a sample</p>
-                  </motion.div>
-                )}
-                {loading && (
-                  <motion.div key="loading" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{ textAlign:"center" }}>
-                    <div style={{ width:64, height:64, borderRadius:"50%", border:"2px solid #4f8ef7", borderTopColor:"transparent", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }}/>
-                    <p style={{ color:t.sub, fontSize:12, letterSpacing:"0.06em" }}>SCANNING TRANSACTION...</p>
-                  </motion.div>
-                )}
-                {result && !loading && (
-                  <motion.div key="result" initial={{scale:0.9,opacity:0}} animate={{scale:1,opacity:1}} style={{ width:"100%", textAlign:"center" }}>
-                    <GaugeMeter value={result.fraud_probability}/>
-                    <motion.div initial={{y:10,opacity:0}} animate={{y:0,opacity:1}} transition={{delay:0.2}}>
-                      <div style={{ fontSize:28, fontWeight:800, letterSpacing:"0.1em", color: result.label==="FRAUD"?"#ff3d71":"#00d68f", margin:"8px 0 4px" }}>
-                        {result.label==="FRAUD" ? "🚨" : "✅"} {result.label}
-                      </div>
-                      <div style={{ fontSize:11, color:t.sub, letterSpacing:"0.06em", marginBottom:10 }}>
-                        CONFIDENCE: <span style={{ color:t.text, fontFamily:"'Space Mono',monospace" }}>{((1-result.fraud_probability)*100).toFixed(1)}%</span>
-                      </div>
-                      <div style={{ marginBottom:12 }}>
-                        <span style={{ display:"inline-block", padding:"4px 14px", borderRadius:20, fontSize:11, fontWeight:700, letterSpacing:"0.08em",
-                          background: result.triage==="HIGH"?"rgba(255,61,113,0.15)":result.triage==="MEDIUM"?"rgba(255,170,0,0.15)":"rgba(0,214,143,0.15)",
-                          color: result.triage==="HIGH"?"#ff3d71":result.triage==="MEDIUM"?"#ffaa00":"#00d68f",
-                          border:`1px solid ${result.triage==="HIGH"?"rgba(255,61,113,0.3)":result.triage==="MEDIUM"?"rgba(255,170,0,0.3)":"rgba(0,214,143,0.3)"}` }}>
-                          TRIAGE: {result.triage}
-                        </span>
-                      </div>
-                      <div style={{ background: result.label==="FRAUD"?"rgba(255,61,113,0.08)":"rgba(0,214,143,0.08)",
-                        border:`1px solid ${result.label==="FRAUD"?"rgba(255,61,113,0.25)":"rgba(0,214,143,0.25)"}`,
-                        borderRadius:10, padding:"10px 16px", fontSize:11,
-                        color: result.label==="FRAUD"?"#ff3d71":"#00d68f", letterSpacing:"0.04em" }}>
-                        {result.triage==="HIGH" ? "⚠ High risk. Block transaction and alert analyst immediately." :
-                         result.triage==="MEDIUM" ? "⚡ Medium risk. Flag for secondary verification (OTP required)." :
-                         "✔ Low risk. Transaction cleared. Safe to process."}
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          </div>
-        )}
-
-        {/* History Tab */}
-        {activeTab==="history" && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}}
-            style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, overflow:"hidden", backdropFilter:"blur(10px)" }}>
-            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${t.border}`, fontWeight:700, fontSize:12, letterSpacing:"0.08em", color:t.sub, display:"flex", alignItems:"center", gap:8 }}>
-              <Activity size={14} color="#4f8ef7"/> TRANSACTION LOG
-            </div>
-            {history.length===0 ? (
-              <div style={{ padding:40, textAlign:"center", color:t.sub, fontSize:12, letterSpacing:"0.06em" }}>NO TRANSACTIONS YET</div>
-            ) : (
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-                  <thead>
-                    <tr style={{ background:t.card2 }}>
-                      {["#","TIME","AMOUNT","VERDICT","RISK","TRIAGE","STATUS"].map(h => (
-                        <th key={h} style={{ padding:"11px 16px", textAlign:"left", color:t.sub, fontWeight:600, fontSize:10, letterSpacing:"0.08em", whiteSpace:"nowrap" }}>{h}</th>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography fontWeight={700} fontSize={13} mb={2}>Detection Breakdown</Typography>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0}>
+                          <Cell fill="#16a34a" />
+                          <Cell fill="#dc2626" />
+                        </Pie>
+                        <RTooltip contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 3, mt: 1 }}>
+                      {[{ l: "Legit", c: "#16a34a" }, { l: "Fraud", c: "#dc2626" }].map(x => (
+                        <Box key={x.l} sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: x.c }} />
+                          <Typography fontSize={11} color="text.secondary">{x.l}</Typography>
+                        </Box>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((h,i) => (
-                      <motion.tr key={h.id} initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:i*0.03}}
-                        style={{ borderBottom:`1px solid ${t.border}` }}>
-                        <td style={{ padding:"11px 16px", color:t.sub, fontFamily:"'Space Mono',monospace" }}>{String(i+1).padStart(2,"0")}</td>
-                        <td style={{ padding:"11px 16px", color:t.sub, fontFamily:"'Space Mono',monospace", whiteSpace:"nowrap" }}>{h.time}</td>
-                        <td style={{ padding:"11px 16px", fontFamily:"'Space Mono',monospace" }}>₦{parseFloat(h.amt).toFixed(2)}</td>
-                        <td style={{ padding:"11px 16px", fontWeight:700, letterSpacing:"0.06em", color: h.label==="FRAUD"?"#ff3d71":"#00d68f" }}>{h.label}</td>
-                        <td style={{ padding:"11px 16px", fontFamily:"'Space Mono',monospace" }}>{(h.fraud_probability*100).toFixed(2)}%</td>
-                        <td style={{ padding:"11px 16px" }}>
-                          <span style={{ padding:"3px 10px", borderRadius:20, fontSize:10, fontWeight:700, letterSpacing:"0.06em",
-                            background: h.triage==="HIGH"?"rgba(255,61,113,0.12)":h.triage==="MEDIUM"?"rgba(255,170,0,0.12)":"rgba(0,214,143,0.12)",
-                            color: h.triage==="HIGH"?"#ff3d71":h.triage==="MEDIUM"?"#ffaa00":"#00d68f" }}>
-                            {h.triage}
-                          </span>
-                        </td>
-                        <td style={{ padding:"11px 16px" }}>
-                          <span style={{ padding:"3px 10px", borderRadius:20, fontSize:10, fontWeight:700,
-                            background: h.label==="FRAUD"?"rgba(255,61,113,0.12)":"rgba(0,214,143,0.12)",
-                            color: h.label==="FRAUD"?"#ff3d71":"#00d68f" }}>
-                            {h.label==="FRAUD"?"FLAGGED":"CLEARED"}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </motion.div>
-        )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-        {/* Charts Tab */}
-        {activeTab==="charts" && (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:16 }}>
-            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)" }}>
-              <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.08em", color:t.sub, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
-                <BarChart2 size={13} color="#4f8ef7"/> RISK PROBABILITY TREND
-              </div>
-              {areaData.length===0 ? <div style={{ color:t.sub, textAlign:"center", padding:40, fontSize:11 }}>NO DATA YET</div> : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={areaData}>
-                    <defs>
-                      <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f8ef7" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#4f8ef7" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="n" stroke={t.sub} fontSize={10} tickLine={false}/>
-                    <YAxis stroke={t.sub} fontSize={10} tickLine={false}/>
-                    <Tooltip contentStyle={{ background:dark?"#0f1825":"#fff", border:`1px solid ${t.border}`, borderRadius:8, fontSize:11 }}/>
-                    <Area type="monotone" dataKey="p" stroke="#4f8ef7" fill="url(#g1)" strokeWidth={2} dot={false}/>
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ gridColumn: "1 / -1" }}>
+                <Card>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography fontWeight={700} fontSize={13} mb={2.5}>Model Performance Metrics</Typography>
+                    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px,1fr))", gap: 2 }}>
+                      {[
+                        { label: "ROC-AUC", value: "0.9971", color: "#2563eb" },
+                        { label: "Recall", value: "87%", color: "#16a34a" },
+                        { label: "F1-Score", value: "0.70", color: "#d97706" },
+                        { label: "Precision", value: "58%", color: "#7c3aed" },
+                        { label: "Algorithm", value: "XGBoost", color: "#2563eb" },
+                        { label: "Balancing", value: "SMOTE", color: "#16a34a" },
+                      ].map((m, i) => (
+                        <Box key={i} sx={{ bgcolor: dark ? "rgba(255,255,255,0.04)" : "#f8fafc", border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0", borderRadius: 2, p: 2 }}>
+                          <Typography fontWeight={700} fontSize={18} color={m.color}>{m.value}</Typography>
+                          <Typography fontSize={11} color="text.secondary" mt={0.5}>{m.label}</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Box>
+          )}
+        </Box>
 
-            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)" }}>
-              <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.08em", color:t.sub, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
-                <Activity size={13} color="#7b5cf0"/> DETECTION BREAKDOWN
-              </div>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0}>
-                    <Cell fill="#00d68f"/>
-                    <Cell fill="#ff3d71"/>
-                  </Pie>
-                  <Tooltip contentStyle={{ background:dark?"#0f1825":"#fff", border:`1px solid ${t.border}`, borderRadius:8, fontSize:11 }}/>
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display:"flex", justifyContent:"center", gap:20, marginTop:4 }}>
-                {[{l:"Legit",c:"#00d68f"},{l:"Fraud",c:"#ff3d71"}].map(x => (
-                  <div key={x.l} style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:t.sub }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:x.c }}/>
-                    {x.l.toUpperCase()}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.2}}
-              style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:16, padding:20, backdropFilter:"blur(10px)", gridColumn:"1 / -1" }}>
-              <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.08em", color:t.sub, marginBottom:16 }}>MODEL PERFORMANCE</div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:12 }}>
-                {[
-                  { label:"ROC-AUC", value:"0.9971", color:"#4f8ef7" },
-                  { label:"Recall", value:"87%", color:"#00d68f" },
-                  { label:"F1-Score", value:"0.70", color:"#ffaa00" },
-                  { label:"Precision", value:"58%", color:"#7b5cf0" },
-                  { label:"Algorithm", value:"XGBoost", color:"#4f8ef7" },
-                  { label:"Balancing", value:"SMOTE", color:"#00d68f" },
-                ].map((m,i) => (
-                  <div key={i} style={{ background:t.card2, border:`1px solid ${t.border}`, borderRadius:10, padding:"12px 14px" }}>
-                    <div style={{ fontSize:16, fontWeight:700, color:m.color, fontFamily:"'Space Mono',monospace" }}>{m.value}</div>
-                    <div style={{ fontSize:10, color:t.sub, marginTop:4, letterSpacing:"0.06em" }}>{m.label.toUpperCase()}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </div>
+        {/* Footer */}
+        <Box sx={{ textAlign: "center", py: 3, borderTop: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0", mt: 4 }}>
+          <Typography fontSize={12} color="text.secondary">
+            FraudShield · Built with XGBoost + SMOTE + Flask · Bowen University 2026
+          </Typography>
+        </Box>
+      </Box>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
-        * { margin:0; padding:0; box-sizing:border-box; }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        input:focus, select:focus { outline:1px solid #4f8ef7 !important; }
-        select option { background: #0f172a; color: #f0f4ff; }
-        ::-webkit-scrollbar { width:4px; height:4px; }
-        ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
-        button:hover { opacity:0.85; transition:opacity 0.2s; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
       `}</style>
-    </div>
+    </ThemeProvider>
   );
 }
