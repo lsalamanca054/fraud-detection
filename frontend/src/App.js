@@ -302,6 +302,7 @@ if (transaction.unix_time < 0) {
                         <Select name="gender" value={form.gender} onChange={handleChange} label="Gender">
                           <MenuItem value="0">Female</MenuItem>
                           <MenuItem value="1">Male</MenuItem>
+                          <MenuItem value="2">Other</MenuItem>
                         </Select>
                       </FormControl>
 
