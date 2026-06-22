@@ -100,9 +100,33 @@ export default function App() {
       distance: parseFloat(form.distance),
       unix_time: parseInt(form.unix_time),
     };
-    if (Object.values(transaction).some(isNaN)) {
-      setError("Please fill in all fields correctly."); return;
-    }
+ if (Object.values(transaction).some(isNaN)) {
+  setError("Please fill in all fields correctly."); return;
+}
+if (transaction.amt <= 0) {
+  setError("Transaction amount must be greater than 0."); return;
+}
+if (transaction.hour < 0 || transaction.hour > 23) {
+  setError("Hour must be between 0 and 23."); return;
+}
+if (transaction.day < 0 || transaction.day > 6) {
+  setError("Day must be between 0 (Monday) and 6 (Sunday)."); return;
+}
+if (transaction.month < 1 || transaction.month > 12) {
+  setError("Month must be between 1 and 12."); return;
+}
+if (transaction.age < 13 || transaction.age > 110) {
+  setError("Cardholder age must be between 13 and 110."); return;
+}
+if (transaction.city_pop < 1 || transaction.city_pop > 40000000) {
+  setError("City population must be between 1 and 40,000,000."); return;
+}
+if (transaction.distance < 0) {
+  setError("Distance cannot be negative."); return;
+}
+if (transaction.unix_time < 0) {
+  setError("Unix timestamp cannot be negative."); return;
+}
     setLoading(true);
     try {
       const res = await axios.post(API, { transaction });
@@ -328,13 +352,15 @@ export default function App() {
 
                             {/* Icon */}
                             <Avatar sx={{
-                              width: 72, height: 72, mx: "auto", mb: 2,
-                              bgcolor: result.label === "FRAUD" ? "#fef2f2" : "#f0fdf4",
-                              border: `2px solid ${result.label === "FRAUD" ? "#fecaca" : "#bbf7d0"}`
-                            }}>
-                              {result.label === "FRAUD"
-                                ? <WarningAmberIcon sx={{ color: "#dc2626", fontSize: 36 }} />
-                                : <CheckCircleIcon sx={{ color: "#16a34a", fontSize: 36 }} />}
+  width: 72, height: 72, mx: "auto", mb: 2,
+  bgcolor: result.triage === "HIGH" ? "#fef2f2" : result.triage === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
+  border: `2px solid ${result.triage === "HIGH" ? "#fecaca" : result.triage === "MEDIUM" ? "#fde68a" : "#bbf7d0"}`
+}}>
+                              {result.triage === "HIGH"
+  ? <WarningAmberIcon sx={{ color: "#dc2626", fontSize: 36 }} />
+  : result.triage === "MEDIUM"
+  ? <WarningAmberIcon sx={{ color: "#d97706", fontSize: 36 }} />
+  : <CheckCircleIcon sx={{ color: "#16a34a", fontSize: 36 }} />}
                             </Avatar>
 
                             <Typography fontWeight={800} fontSize={28} color={result.label === "FRAUD" ? "error.main" : "success.main"}>
