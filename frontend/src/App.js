@@ -208,7 +208,7 @@ if (transaction.unix_time < 0) {
           <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2, flexWrap: "wrap" }}>
   {[
     { label: "ROC-AUC", value: "0.9971", icon: <TrendingUpIcon /> },
-    { label: "Recall", value: "87%", icon: <ShieldIcon /> },
+    { label: "Recall", value: "88%", icon: <ShieldIcon /> },
     { label: "F1-Score", value: "0.70", icon: <AccountBalanceIcon /> },
   ].map((m, i) => (
               <Box key={i} sx={{ bgcolor: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 2, px: 2, py: 1.5, textAlign: "center", minWidth: 80 }}>
@@ -549,7 +549,7 @@ if (transaction.unix_time < 0) {
                     <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px,1fr))", gap: 2 }}>
                       {[
                         { label: "ROC-AUC", value: "0.9971", color: "#2563eb" },
-                        { label: "Recall", value: "87%", color: "#16a34a" },
+                        { label: "Recall", value: "88%", color: "#16a34a" },
                         { label: "F1-Score", value: "0.70", color: "#d97706" },
                         { label: "Precision", value: "58%", color: "#7c3aed" },
                         { label: "Algorithm", value: "XGBoost", color: "#2563eb" },
