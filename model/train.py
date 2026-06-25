@@ -29,10 +29,16 @@ df['month'] = df['trans_date_trans_time'].dt.month
 df['dob'] = pd.to_datetime(df['dob'])
 df['age'] = (pd.Timestamp('2020-01-01') - df['dob']).dt.days // 365
 
-df['distance'] = np.sqrt(
-    (df['lat'] - df['merch_lat'])**2 +
-    (df['long'] - df['merch_long'])**2
-)
+# Great-circle (Haversine) distance in km between cardholder and merchant
+def haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0  # Earth radius in km
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    return 2 * R * np.arcsin(np.sqrt(a))
+
+df['distance'] = haversine_km(df['lat'], df['long'], df['merch_lat'], df['merch_long'])
 
 # Encode categoricals
 le = LabelEncoder()
