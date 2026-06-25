@@ -142,6 +142,9 @@ if (transaction.unix_time < 0) {
   const triageColor = (t) => t === "HIGH" ? "#dc2626" : t === "MEDIUM" ? "#d97706" : "#16a34a";
   const areaData = history.slice().reverse().map((h, i) => ({ n: i + 1, p: +(h.fraud_probability * 100).toFixed(2) }));
   const pieData = [{ name: "Legit", value: stats.legit || 1 }, { name: "Fraud", value: stats.fraud || 0 }];
+  const latencies = history.map(h => h.latency_ms).filter(l => typeof l === "number");
+  const avgLatency = latencies.length ? (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(1) : "—";
+  const slaRate = latencies.length ? Math.round((latencies.filter(l => l <= 200).length / latencies.length) * 100) : null;
 
   return (
     <ThemeProvider theme={theme}>
@@ -386,13 +389,24 @@ if (transaction.unix_time < 0) {
                             </Box>
 
                             {/* Triage Badge */}
-                            <Chip label={`Triage: ${result.triage}`} size="small"
-                              sx={{
-                                mb: 2, fontWeight: 700, fontSize: 11,
-                                bgcolor: result.triage === "HIGH" ? "#fef2f2" : result.triage === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
-                                color: triageColor(result.triage),
-                                border: `1px solid ${result.triage === "HIGH" ? "#fecaca" : result.triage === "MEDIUM" ? "#fde68a" : "#bbf7d0"}`
-                              }} />
+                            <Box sx={{ display: "flex", justifyContent: "center", gap: 1, mb: 2, flexWrap: "wrap" }}>
+                              <Chip label={`Triage: ${result.triage}`} size="small"
+                                sx={{
+                                  fontWeight: 700, fontSize: 11,
+                                  bgcolor: result.triage === "HIGH" ? "#fef2f2" : result.triage === "MEDIUM" ? "#fffbeb" : "#f0fdf4",
+                                  color: triageColor(result.triage),
+                                  border: `1px solid ${result.triage === "HIGH" ? "#fecaca" : result.triage === "MEDIUM" ? "#fde68a" : "#bbf7d0"}`
+                                }} />
+                              {typeof result.latency_ms === "number" && (
+                                <Chip label={`Scored in ${result.latency_ms}ms`} size="small" icon={<BoltIcon sx={{ fontSize: 14 }} />}
+                                  sx={{
+                                    fontWeight: 700, fontSize: 11,
+                                    bgcolor: result.meets_sla ? "#f0fdf4" : "#fef2f2",
+                                    color: result.meets_sla ? "#16a34a" : "#dc2626",
+                                    border: `1px solid ${result.meets_sla ? "#bbf7d0" : "#fecaca"}`
+                                  }} />
+                              )}
+                            </Box>
 
                             <Divider sx={{ my: 2 }} />
 
@@ -437,7 +451,7 @@ if (transaction.unix_time < 0) {
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                         <thead>
                           <tr style={{ background: dark ? "rgba(255,255,255,0.03)" : "#f8fafc" }}>
-                            {["#", "Time", "Amount", "Verdict", "Risk %", "Triage", "Status"].map(h => (
+                            {["#", "Time", "Amount", "Verdict", "Risk %", "Triage", "Latency", "Status"].map(h => (
                               <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.05em" }}>{h}</th>
                             ))}
                           </tr>
@@ -454,6 +468,9 @@ if (transaction.unix_time < 0) {
                                 <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: h.triage === "HIGH" ? "#fef2f2" : h.triage === "MEDIUM" ? "#fffbeb" : "#f0fdf4", color: triageColor(h.triage) }}>
                                   {h.triage}
                                 </span>
+                              </td>
+                              <td style={{ padding: "12px 16px", color: h.meets_sla === false ? "#dc2626" : "#16a34a", fontWeight: 600 }}>
+                                {typeof h.latency_ms === "number" ? `${h.latency_ms}ms` : "—"}
                               </td>
                               <td style={{ padding: "12px 16px" }}>
                                 <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: h.label === "FRAUD" ? "#fef2f2" : "#f0fdf4", color: h.label === "FRAUD" ? "#dc2626" : "#16a34a" }}>
@@ -537,6 +554,8 @@ if (transaction.unix_time < 0) {
                         { label: "Precision", value: "58%", color: "#7c3aed" },
                         { label: "Algorithm", value: "XGBoost", color: "#2563eb" },
                         { label: "Balancing", value: "SMOTE", color: "#16a34a" },
+                        { label: "Avg Latency", value: avgLatency !== "—" ? `${avgLatency}ms` : "—", color: "#0891b2" },
+                        { label: "Sub-200ms Rate", value: slaRate !== null ? `${slaRate}%` : "—", color: "#16a34a" },
                       ].map((m, i) => (
                         <Box key={i} sx={{ bgcolor: dark ? "rgba(255,255,255,0.04)" : "#f8fafc", border: dark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0", borderRadius: 2, p: 2 }}>
                           <Typography fontWeight={700} fontSize={18} color={m.color}>{m.value}</Typography>

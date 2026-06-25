@@ -1,3 +1,8 @@
-model/creditcard.csv 
-model/fraudTrain.csv 
-model/fraudTest.csv 
+model/creditcard.csv
+model/fraudTrain.csv
+model/fraudTest.csv
+
+# Local dev artifacts
+api/.venv/
+api/server.log
+frontend/node_modules/
